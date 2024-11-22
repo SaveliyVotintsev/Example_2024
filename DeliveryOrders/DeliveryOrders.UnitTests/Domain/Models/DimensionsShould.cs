@@ -7,9 +7,11 @@ namespace DeliveryOrders.UnitTests.Domain.Models;
 public class DimensionsShould
 {
     [Theory]
-    [InlineData(1, 1, 1, 1)]
+    [InlineData(0, 0, 0, 0)]
     [InlineData(2, 2, 2, 100)]
-    [InlineData(1.5, 1.5, 1.5, 50)]
+    [InlineData(0, 2, 0, 0)]
+    [InlineData(2, 0, 2, 100)]
+    [InlineData(1, 0, 1, 50)]
     public void CreateDimensions_WhenValidParametersAreProvided(decimal length, decimal width, decimal height, decimal weight)
     {
         Result<Dimensions> actual = Dimensions.Create(length, width, height, weight);
@@ -28,11 +30,15 @@ public class DimensionsShould
     }
 
     [Theory]
-    [InlineData(-5, 1, 1, 1)]
-    [InlineData(2, 40, 2, 100)]
-    [InlineData(1.5, 1.5, -55, 50)]
-    [InlineData(1.5, 1.5, 1.5, 210)]
-    public void NotCreateDimensions_WhenInvalidParametersAreProvided(decimal length, decimal width, decimal height, decimal weight)
+    [InlineData(-0.1, 1, 1, 1)]
+    [InlineData(3, 1, 1, 1)]
+    [InlineData(1, -0.1, 1, 1)]
+    [InlineData(1, 3, 1, 1)]
+    [InlineData(1, 1, -0.1, 1)]
+    [InlineData(1, 1, 3, 1)]
+    [InlineData(1, 1, 1, -0.1)]
+    [InlineData(1, 1, 1, 101)]
+    public void FailToCreateDimensions_WhenInvalidParametersAreProvided(decimal length, decimal width, decimal height, decimal weight)
     {
         Result<Dimensions> actual = Dimensions.Create(length, width, height, weight);
 

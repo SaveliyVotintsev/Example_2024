@@ -1,0 +1,81 @@
+name: Run unit tests
+
+on:
+  workflow_call:
+
+permissions:
+  pull-requests: write
+  contents: write
+  statuses: write
+  checks: write
+  actions: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./DeliveryOrders
+
+    env:
+      NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+          dotnet-quality: 'ga'
+
+      - name: Restore backend dependencies
+        run: dotnet restore
+
+      - name: Build backend
+        run: dotnet build --no-restore
+
+      - name: Run tests
+        run: dotnet test DeliveryOrders.UnitTests --verbosity normal --logger trx --collect:"XPlat Code Coverage"
+
+      - name: Upload Test Result Files
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ${{ github.workspace }}/**/TestResults/**/*
+
+      - name: Test Report
+        uses: dorny/test-reporter@v1
+        if: github.event_name != 'pull_request' && (success() || failure())
+        with:
+          name: Test Report
+          path: "${{ github.workspace }}/**/*.trx"
+          reporter: dotnet-trx
+          only-summary: 'false'
+          fail-on-error: 'false'
+          fail-on-empty: 'false'
+
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          trx_files: "${{ github.workspace }}/**/*.trx"
+
+      - name: ReportGenerator
+        uses: danielpalme/ReportGenerator-GitHub-Action@5
+        with:
+          reports: "**/*.cobertura.xml"
+          targetdir: "${{ github.workspace }}"
+          reporttypes: MarkdownSummaryGithub
+
+      - name: Upload coverage report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CoverageReport
+          path: "${{ github.workspace }}"
+
+      - name: Publish coverage in build summary
+        run: cat ${{ github.workspace }}/SummaryGithub.md >> $GITHUB_STEP_SUMMARY
+        shell: bash
